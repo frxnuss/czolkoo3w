@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Czółko Party Online</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Confetti JS -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#060913',
+                            card: '#121829',
+                            cyan: '#00f2fe',
+                            purple: '#7928ca',
+                            gold: '#ffd700'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 25px rgba(0, 242, 254, 0.4)',
+                        'neon-purple': '0 0 25px rgba(121, 40, 202, 0.4)',
+                        'neon-gold': '0 0 35px rgba(255, 215, 0, 0.6)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #060913;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(121, 40, 202, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 85% 80%, rgba(0, 242, 254, 0.2) 0%, transparent 50%);
+            color: #f3f4f6;
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: rgba(18, 24, 41, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .forehead-badge {
+            background: linear-gradient(135deg, rgba(10, 13, 22, 0.95), rgba(20, 28, 48, 0.95));
+            border: 2px solid rgba(0, 242, 254, 0.6);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(0, 242, 254, 0.2);
+        }
+
+        .scanline {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 0, 0, 0.3) 50%,
+                rgba(0, 0, 0, 0.3)
+            );
+            background-size: 100% 4px;
+        }
+
+        .victory-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(4, 6, 12, 0.88);
+            backdrop-filter: blur(12px);
+            z-index: 90;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .victory-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-black">
+
+    <!-- VICTORY BACKDROP -->
+    <div id="victoryBackdrop" class="victory-backdrop flex flex-col items-center justify-center">
+        <div class="text-center space-y-2 transform -translate-y-44">
+            <span class="text-amber-400 font-bold uppercase tracking-widest text-sm animate-bounce block">✨ BRAWO! HASŁO ODGADNIĘTE! ✨</span>
+            <h2 id="winnerAnnounceText" class="text-4xl md:text-6xl font-black font-display text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-500 drop-shadow-lg">
+                PUNKT DLA ZGADUJĄCEGO!
+            </h2>
+        </div>
+    </div>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="w-full border-b border-white/10 glass-panel sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center font-black font-display text-xl text-white shadow-neon-cyan">
+                    Č
+                </div>
+                <div>
+                    <h1 class="font-display font-black text-lg md:text-xl tracking-tight text-white flex items-center gap-2">
+                        CZÓŁKO <span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">ONLINE</span>
+                    </h1>
+                    <p class="text-[11px] text-gray-400 hidden sm:block">Zdalna gra imprezowa z kamerkami na żywo</p>
+                </div>
+            </div>
+
+            <!-- Game Stats Indicator Header -->
+            <div id="topGameStats" class="hidden items-center gap-6">
+                <div class="text-center">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold block">Punkty Gracza</span>
+                    <span id="scoreDisplay" class="font-display text-2xl font-bold text-cyan-400">0</span>
+                </div>
+                <div class="h-8 w-[1px] bg-white/10"></div>
+                <div class="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-3 py-1.5 rounded-xl">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                    <span id="hostStatusBadge" class="text-xs font-bold text-purple-300">Sprawdzanie...</span>
+                </div>
+            </div>
+
+            <!-- Status Indicator and Actions -->
+            <div class="flex items-center gap-3">
+                <button id="inGameMicBtn" class="p-2.5 rounded-xl glass-card hover:bg-white/10 transition text-gray-300 hover:text-white" title="Włącz/Wyłącz Mikrofon">
+                    <i data-lucide="mic" class="w-5 h-5 text-emerald-400"></i>
+                </button>
+                <button id="inGameCamBtn" class="p-2.5 rounded-xl glass-card hover:bg-white/10 transition text-gray-300 hover:text-white" title="Włącz/Wyłącz Kamerkę">
+                    <i data-lucide="video" class="w-5 h-5 text-cyan-400"></i>
+                </button>
+                <button id="soundToggleBtn" class="p-2.5 rounded-xl glass-card hover:bg-white/10 transition text-gray-300 hover:text-white" title="Włącz/Wyłącz Dźwięk Gry">
+                    <i data-lucide="volume-2" class="w-5 h-5"></i>
+                </button>
+                <button id="openSettingsBtn" class="p-2.5 rounded-xl glass-card hover:bg-white/10 transition text-gray-300 hover:text-white" title="Ustawienia">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center">
+
+        <!-- LOBBY & SETUP SCREEN -->
+        <section id="lobbyScreen" class="space-y-6 my-auto">
+            
+            <!-- ROOM INVITE CODE & JOIN ROOM CARD -->
+            <div class="glass-panel rounded-3xl p-6 border border-purple-500/30 space-y-6 bg-gradient-to-r from-purple-950/30 to-slate-900/60 shadow-neon-purple">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                    
+                    <!-- LEFT SIDE: HOST ROOM CREATION & SHARING -->
+                    <div class="space-y-3 border-b lg:border-b-0 lg:border-r border-white/10 pb-6 lg:pb-0 lg:pr-6">
+                        <span class="text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <i data-lucide="wifi" class="w-4 h-4"></i> Twój Pokój Online
+                        </span>
+                        <h2 class="text-2xl font-black font-display text-white">Twórz lub Dołącz do Pokoju</h2>
+                        <p class="text-xs text-gray-300">Wyślij kod lub link znajomym, aby wszyscy grali na żywo w jednym pokoju!</p>
+
+                        <div class="flex flex-wrap items-center gap-3 pt-2">
+                            <div class="bg-slate-950/90 border border-cyan-500/40 rounded-2xl px-5 py-2.5 flex items-center gap-3">
+                                <span class="text-xs text-gray-400 font-mono">TWÓJ KOD:</span>
+                                <span id="roomCodeDisplay" class="font-mono font-black text-xl text-cyan-300 tracking-wider">CZOLKO-9X2A</span>
+                            </div>
+                            <button id="copyCodeBtn" class="px-4 py-3 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-bold rounded-2xl text-xs transition flex items-center gap-2">
+                                <i data-lucide="copy" class="w-4 h-4"></i> Kopiuj Kod
+                            </button>
+                            <button id="copyLinkBtn" class="px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-bold rounded-2xl text-xs transition flex items-center gap-2 shadow-lg">
+                                <i data-lucide="link" class="w-4 h-4"></i> Link Zaproszenia
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT SIDE: JOIN ANOTHER ROOM BY CODE -->
+                    <div class="space-y-3">
+                        <span class="text-xs font-bold text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <i data-lucide="log-in" class="w-4 h-4"></i> Dołącz do Pokoju Znajomego
+                        </span>
+                        <h3 class="text-lg font-bold text-white">Masz kod od znajomego?</h3>
+                        <div class="flex gap-2">
+                            <input type="text" id="joinRoomInput" placeholder="Wpisz kod pokoju (np. CZOLKO-9X2A)..." class="flex-1 bg-slate-950/90 border border-white/20 rounded-2xl px-4 py-3 text-sm text-white font-mono uppercase focus:outline-none focus:border-cyan-400 transition" />
+                            <button id="joinRoomBtn" class="px-5 py-3 bg-gradient-to-r from-cyan-500 to-teal-500 hover:opacity-90 text-slate-950 font-black rounded-2xl text-xs transition flex items-center gap-2 shadow-neon-cyan">
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i> DOŁĄCZ
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-gray-400">Po wpisaniu kodu trafisz prosto do pokoju znajomego.</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- PUBLIC ROOMS BROWSER -->
+            <div class="glass-panel rounded-3xl p-6 border border-purple-500/30 space-y-4 shadow-neon-purple">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="globe" class="w-5 h-5 text-purple-400"></i> Publiczne Pokoje Online
+                        </h3>
+                        <p class="text-xs text-gray-400">Wybierz pokój z listy i dołącz do gry z innymi osobami na żywo.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="createPublicRoomBtn" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-90 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow-lg">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Stwórz Nowy Pokój
+                        </button>
+                        <button id="refreshRoomsBtn" class="px-3 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl text-xs transition flex items-center gap-1.5">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Odśwież
+                        </button>
+                    </div>
+                </div>
+
+                <div id="publicRoomsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 min-h-[80px]">
+                    <div class="col-span-full text-center py-6 text-xs text-gray-400 flex items-center justify-center gap-2">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-cyan-400"></i> Wczytywanie publicznych pokoi...
+                    </div>
+                </div>
+            </div>
+
+            <!-- CATEGORY & WORD MANAGER CARD -->
+            <div class="glass-panel rounded-3xl p-6 border border-cyan-500/30 space-y-4 shadow-neon-cyan">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="edit-3" class="w-5 h-5 text-cyan-400"></i> Twoja Kategoria Hasłowa
+                        </h3>
+                        <p class="text-xs text-gray-400">Dodane słowa zapisują się automatycznie w przeglądarce i są wysyłane do znajomych.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="wordCountBadge" class="px-3.5 py-1.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-xs border border-cyan-500/40">
+                            Liczba haseł: 0
+                        </span>
+                        <button id="clearWordsBtn" class="px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-semibold text-xs border border-rose-500/30 transition flex items-center gap-1">
+                            <i data-lucide="trash" class="w-3.5 h-3.5"></i> Wyczyść
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Word Input Form -->
+                <div id="wordInputContainer" class="flex gap-2">
+                    <input type="text" id="newWordInput" placeholder="Wpisz nowe słowo/hasło i kliknij Dodaj..." class="flex-1 bg-slate-900/90 border border-white/15 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 transition" />
+                    <button id="addWordBtn" class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-2xl text-sm hover:opacity-90 transition shadow-neon-cyan flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Dodaj Hasło
+                    </button>
+                </div>
+
+                <!-- Word Tags Cloud -->
+                <div id="customWordsCloud" class="flex flex-wrap gap-2 min-h-[70px] max-h-52 overflow-y-auto p-3.5 bg-slate-950/60 rounded-2xl border border-white/5">
+                    <!-- Dynamic word badges injected here -->
+                </div>
+            </div>
+
+            <!-- PLAYERS LIST & GAME START PANEL -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Players in Lobby Grid -->
+                <div class="md:col-span-2 glass-panel rounded-3xl p-6 border border-white/10 space-y-4">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                        <h3 class="font-bold text-white text-base flex items-center gap-2">
+                            <i data-lucide="users" class="w-5 h-5 text-purple-400"></i> Gracze w Pokoju Online (<span id="playerCountText">1</span>)
+                        </h3>
+                        <span class="text-xs text-cyan-400 font-semibold flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Na żywo
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="text" id="playerNameInput" placeholder="Wpisz Twój nick..." class="bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400" />
+                        <button id="updateNameBtn" class="px-3 py-2 bg-white/10 hover:bg-white/20 text-xs font-bold text-white rounded-xl transition">
+                            Zmień Nick
+                        </button>
+                    </div>
+
+                    <div id="lobbyPlayersList" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Players cards injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Big Start Game Action Card -->
+                <div class="glass-panel rounded-3xl p-6 border border-cyan-500/40 flex flex-col justify-between space-y-4 bg-gradient-to-b from-slate-900/80 to-purple-950/40">
+                    <div class="space-y-2">
+                        <span class="text-xs font-bold text-cyan-400 uppercase tracking-widest block">Gotowi do Gry?</span>
+                        <h3 class="text-2xl font-black font-display text-white">Zaczynamy Party!</h3>
+                        <p class="text-xs text-gray-300 leading-relaxed">
+                            Założyciel pokoju (oznaczony koroną 👑) rozpoczyna grę i przydziela punkty.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3 pt-4 border-t border-white/10">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="toggleMicBtn" class="py-3 px-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 font-bold text-xs transition flex items-center justify-center gap-2">
+                                <i data-lucide="mic" class="w-4 h-4 text-emerald-400"></i> <span id="micBtnText">Mikrofon WŁ</span>
+                            </button>
+                            <button id="toggleCamBtn" class="py-3 px-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 font-bold text-xs transition flex items-center justify-center gap-2">
+                                <i data-lucide="video" class="w-4 h-4 text-cyan-400"></i> <span id="camBtnText">Kamera WŁ</span>
+                            </button>
+                        </div>
+
+                        <button id="startGameBtn" class="w-full py-4 px-6 bg-gradient-to-r from-cyan-400 via-cyan-500 to-purple-600 hover:brightness-110 text-slate-950 font-black font-display text-lg rounded-2xl shadow-neon-cyan transition transform hover:scale-[1.02] flex items-center justify-center gap-2">
+                            <i data-lucide="play" class="w-6 h-6 fill-current"></i> GRAJ TERAZ!
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- GAMEPLAY SCREEN -->
+        <section id="gameplayScreen" class="hidden flex-col space-y-6">
+
+            <!-- WEBCAMS GRID (HUD & FOREHEAD BADGES) -->
+            <div id="webcamsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Webcam tiles injected here dynamically -->
+            </div>
+
+            <!-- HOST CONTROLS BAR -->
+            <div class="glass-panel rounded-3xl p-4 md:p-6 border border-white/10 space-y-4">
+                <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Panel Sterowania Gospodarza</h3>
+                    </div>
+                    <!-- Direct Media Controls inside gameplay bar -->
+                    <div class="flex items-center gap-2">
+                        <button id="quickMicBtn" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-emerald-400 text-xs text-white font-semibold transition flex items-center gap-1.5">
+                            <i data-lucide="mic" class="w-3.5 h-3.5 text-emerald-400"></i> Mikrofon
+                        </button>
+                        <button id="quickCamBtn" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-cyan-400 text-xs text-white font-semibold transition flex items-center gap-1.5">
+                            <i data-lucide="video" class="w-3.5 h-3.5 text-cyan-400"></i> Kamera
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- PASS BUTTON -->
+                    <button id="passBtn" class="py-4 px-6 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black font-display text-lg tracking-wide shadow-lg hover:shadow-rose-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-3">
+                        <i data-lucide="skip-forward" class="w-6 h-6"></i> PASS (NASTĘPNY GRACZ)
+                    </button>
+
+                    <!-- CORRECT BUTTON -->
+                    <button id="correctBtn" class="py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black font-display text-lg tracking-wide shadow-lg hover:shadow-emerald-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-3">
+                        <i data-lucide="check-circle-2" class="w-6 h-6"></i> ZGADNIĘTE! (+1 PKT)
+                    </button>
+                </div>
+
+                <div id="nonHostWarning" class="hidden text-center py-2 text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                    🔒 Sterowanie zablokowane. Brak uprawnień Gospodarza dla tego urządzenia.
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 border border-white/10 space-y-6">
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-cyan-400"></i> Ustawienia
+                </h3>
+                <button id="closeSettingsBtn" class="p-1.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex items-center justify-between py-2 border-t border-white/10">
+                    <div>
+                        <div class="text-sm font-semibold text-white">Zamazanie na własnym ekranie</div>
+                        <div class="text-xs text-gray-400">Ukrywaj słowo jeśli to Ty zgadujesz</div>
+                    </div>
+                    <input type="checkbox" id="showSelfWordBlurred" class="w-5 h-5 accent-cyan-400 rounded cursor-pointer" checked>
+                </div>
+            </div>
+
+            <button id="saveSettingsBtn" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-purple-600 text-slate-950 font-bold font-display transition shadow-neon-cyan">
+                Zapisz Ustawienia
+            </button>
+        </div>
+    </div>
+
+    <!-- APPLICATION SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Storage Keys
+        const STORAGE_WORDS_KEY = 'czolko_custom_words_v6';
+        const STORAGE_MY_NAME_KEY = 'czolko_my_name_v6';
+
+        // URL Params
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomFromUrl = urlParams.get('room');
+        const activeRoomId = roomFromUrl ? roomFromUrl.toUpperCase() : ('CZOLKO-' + Math.random().toString(36).substring(2, 6).toUpperCase());
+
+        // Application State
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'czolko-party-app';
+        
+        let storedUserId = localStorage.getItem('czolko_user_id');
+        if (!storedUserId) {
+            storedUserId = crypto.randomUUID();
+            localStorage.setItem('czolko_user_id', storedUserId);
+        }
+
+        const appGameState = {
+            roomId: activeRoomId,
+            userId: storedUserId,
+            myName: localStorage.getItem(STORAGE_MY_NAME_KEY) || ('Gracz_' + Math.floor(Math.random() * 899 + 100)),
+            creatorId: null,
+            isHost: false,
+            customCategory: {
+                words: loadSavedWords()
+            },
+            players: [],
+            activeWordIndex: 0,
+            wordsPool: [],
+            currentGuesserIndex: 0,
+            isGameRunning: false,
+            soundEnabled: true,
+            showSelfBlurred: true,
+            localStream: null,
+            isCamEnabled: true,
+            isMicEnabled: true,
+            isAnimatingVictory: false
+        };
+
+        function loadSavedWords() {
+            try {
+                const saved = localStorage.getItem(STORAGE_WORDS_KEY);
+                return saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveWordsToStorage(words) {
+            try {
+                localStorage.setItem(STORAGE_WORDS_KEY, JSON.stringify(words));
+            } catch (e) { console.warn('Storage error'); }
+        }
+
+        // Sound Audio Synthesizer
+        class SoundFX {
+            constructor() { this.ctx = null; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            playCorrect() {
+                if (!appGameState.soundEnabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + (idx * 0.08));
+                    gain.gain.setValueAtTime(0.2, now + (idx * 0.08));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + (idx * 0.08));
+                    osc.stop(now + 0.6);
+                });
+            }
+            playPass() {
+                if (!appGameState.soundEnabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(330, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+        }
+        const audio = new SoundFX();
+
+        // Firebase Initialization with Broadcast Public Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyB0U5s23P456789_DemoRoomSyncKey",
+            authDomain: "czolko-party.firebaseapp.com",
+            projectId: "czolko-party",
+            storageBucket: "czolko-party.appspot.com",
+            messagingSenderId: "987654321",
+            appId: "1:987654321:web:123456789abc"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Application Initialization
+        window.addEventListener('DOMContentLoaded', async () => {
+            const nameInput = document.getElementById('playerNameInput');
+            const roomDisplay = document.getElementById('roomCodeDisplay');
+            if (nameInput) nameInput.value = appGameState.myName;
+            if (roomDisplay) roomDisplay.innerText = appGameState.roomId;
+
+            try {
+                await signInAnonymously(auth);
+            } catch (err) {
+                console.warn("Firebase Auth fallback active");
+            }
+
+            initRoomSync();
+            subscribeToPublicRooms();
+            
+            renderCustomWords();
+            setupEventListeners();
+            if (window.lucide) lucide.createIcons();
+        });
+
+        function getRoomDocRef(roomId = appGameState.roomId) {
+            return doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
+        }
+
+        function getRoomsCollectionRef() {
+            return collection(db, 'artifacts', appId, 'public', 'data', 'rooms');
+        }
+
+        function subscribeToPublicRooms() {
+            const roomsRef = getRoomsCollectionRef();
+            onSnapshot(roomsRef, (snapshot) => {
+                const rooms = [];
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data && data.roomId) {
+                        rooms.push(data);
+                    }
+                });
+                renderPublicRooms(rooms);
+            }, (err) => {
+                renderPublicRooms([]);
+            });
+        }
+
+        function renderPublicRooms(rooms) {
+            const container = document.getElementById('publicRoomsList');
+            if (!container) return;
+
+            if (!rooms || rooms.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-6 text-xs text-gray-400 bg-white/5 rounded-2xl border border-white/5">
+                        Brak aktywnych publicznych pokoi. Kliknij <strong class="text-cyan-400">"Stwórz Nowy Pokój"</strong>!
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = rooms.map(room => {
+                const isCurrent = room.roomId === appGameState.roomId;
+                const playerCount = (room.players || []).length;
+                const isRunning = room.isGameRunning;
+
+                return `
+                    <div class="glass-card rounded-2xl p-3.5 border ${isCurrent ? 'border-cyan-400 bg-cyan-500/10' : 'border-white/10'} flex flex-col justify-between space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-sm text-cyan-300">${room.roomId}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full ${isRunning ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}">
+                                ${isRunning ? 'Trwa gra' : 'Lobby'}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-gray-400 font-mono">
+                            <span>Gracze: <strong class="text-white">${playerCount}</strong></span>
+                            <span>Hasła: <strong class="text-white">${(room.wordsPool || []).length}</strong></span>
+                        </div>
+                        ${isCurrent ? `
+                            <div class="w-full text-center py-2 bg-cyan-500/20 text-cyan-300 font-bold rounded-xl text-xs border border-cyan-500/30">
+                                Jesteś w tym pokoju
+                            </div>
+                        ` : `
+                            <button onclick="window.joinPublicRoom('${room.roomId}')" class="w-full py-2 bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-90 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-md">
+                                <i data-lucide="log-in" class="w-3.5 h-3.5"></i> DOŁĄCZ DO POKOJU
+                            </button>
+                        `}
+                    </div>
+                `;
+            }).join('');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        window.joinPublicRoom = function(roomId) {
+            if (roomId) {
+                window.location.search = '?room=' + roomId;
+            }
+        };
+
+        function initRoomSync() {
+            const roomRef = getRoomDocRef();
+
+            onSnapshot(roomRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    let updatedPlayers = data.players || [];
+                    
+                    appGameState.creatorId = data.creatorId || (updatedPlayers[0] ? updatedPlayers[0].id : appGameState.userId);
+                    appGameState.isHost = (appGameState.userId === appGameState.creatorId);
+
+                    const myIdx = updatedPlayers.findIndex(p => p.id === appGameState.userId);
+                    const myPlayerData = {
+                        id: appGameState.userId,
+                        name: appGameState.myName,
+                        isCamActive: appGameState.isCamEnabled,
+                        isMicActive: appGameState.isMicEnabled,
+                        score: myIdx !== -1 ? (updatedPlayers[myIdx].score || 0) : 0,
+                        avatarBg: myIdx !== -1 ? updatedPlayers[myIdx].avatarBg : 'bg-cyan-600'
+                    };
+
+                    if (myIdx !== -1) {
+                        updatedPlayers[myIdx] = myPlayerData;
+                    } else {
+                        updatedPlayers.push(myPlayerData);
+                    }
+
+                    appGameState.players = updatedPlayers;
+                    appGameState.activeWordIndex = data.activeWordIndex || 0;
+                    appGameState.currentGuesserIndex = data.currentGuesserIndex || 0;
+                    appGameState.wordsPool = (data.wordsPool && data.wordsPool.length > 0) ? data.wordsPool : appGameState.customCategory.words;
+                    
+                    if (data.isGameRunning && !appGameState.isGameRunning) {
+                        appGameState.isGameRunning = true;
+                        document.getElementById('lobbyScreen')?.classList.add('hidden');
+                        document.getElementById('gameplayScreen')?.classList.remove('hidden');
+                        document.getElementById('gameplayScreen')?.classList.add('flex');
+                        document.getElementById('topGameStats')?.classList.remove('hidden');
+                        document.getElementById('topGameStats')?.classList.add('flex');
+                    }
+
+                    updateHostControlsUI();
+                    syncRoomState();
+                } else {
+                    appGameState.creatorId = appGameState.userId;
+                    appGameState.isHost = true;
+                    pushStateToCloud();
+                }
+            }, (err) => {
+                initLocalFallbackRoom();
+            });
+        }
+
+        function pushStateToCloud() {
+            const roomRef = getRoomDocRef();
+
+            const myIdx = appGameState.players.findIndex(p => p.id === appGameState.userId);
+            if (myIdx === -1) {
+                appGameState.players.push({
+                    id: appGameState.userId,
+                    name: appGameState.myName,
+                    isCamActive: appGameState.isCamEnabled,
+                    isMicActive: appGameState.isMicEnabled,
+                    score: 0,
+                    avatarBg: 'bg-cyan-600'
+                });
+            }
+
+            setDoc(roomRef, {
+                roomId: appGameState.roomId,
+                creatorId: appGameState.creatorId || appGameState.userId,
+                activeWordIndex: appGameState.activeWordIndex,
+                currentGuesserIndex: appGameState.currentGuesserIndex,
+                isGameRunning: appGameState.isGameRunning,
+                wordsPool: appGameState.wordsPool.length > 0 ? appGameState.wordsPool : appGameState.customCategory.words,
+                players: appGameState.players,
+                updatedAt: Date.now()
+            }, { merge: true }).catch(err => console.warn('Cloud update failed:', err));
+        }
+
+        function initLocalFallbackRoom() {
+            appGameState.creatorId = appGameState.userId;
+            appGameState.isHost = true;
+            appGameState.players = [{
+                id: appGameState.userId,
+                name: appGameState.myName,
+                isCamActive: appGameState.isCamEnabled,
+                isMicActive: appGameState.isMicEnabled,
+                score: 0,
+                avatarBg: 'bg-cyan-600'
+            }];
+            updateHostControlsUI();
+            syncRoomState();
+        }
+
+        function syncRoomState() {
+            if (appGameState.isGameRunning) {
+                renderWebcamsGrid();
+            } else {
+                renderLobbyPlayers();
+            }
+        }
+
+        function renderCustomWords() {
+            const container = document.getElementById('customWordsCloud');
+            const countBadge = document.getElementById('wordCountBadge');
+            if (!container || !countBadge) return;
+
+            countBadge.innerText = `Liczba haseł: ${appGameState.customCategory.words.length}`;
+
+            if (appGameState.customCategory.words.length === 0) {
+                container.innerHTML = `<span class="text-xs text-gray-400 italic p-2 flex items-center gap-2"><i data-lucide="info" class="w-4 h-4 text-cyan-400"></i> Brak haseł. Wpisz pierwsze słowo w polu powyżej!</span>`;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = appGameState.customCategory.words.map((word, idx) => `
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-200 text-xs font-semibold group">
+                    ${word}
+                    ${appGameState.isHost ? `
+                        <button onclick="window.removeWord(${idx})" class="text-cyan-400 hover:text-rose-400 transition">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                    ` : ''}
+                </span>
+            `).join('');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        window.removeWord = function(idx) {
+            if (!appGameState.isHost) return;
+            appGameState.customCategory.words.splice(idx, 1);
+            saveWordsToStorage(appGameState.customCategory.words);
+            renderCustomWords();
+            pushStateToCloud();
+        };
+
+        function renderLobbyPlayers() {
+            const container = document.getElementById('lobbyPlayersList');
+            const countText = document.getElementById('playerCountText');
+            if (countText) countText.innerText = appGameState.players.length;
+            if (!container) return;
+
+            container.innerHTML = appGameState.players.map((player) => {
+                const isMe = player.id === appGameState.userId;
+                const isCreator = player.id === appGameState.creatorId;
+
+                return `
+                    <div class="glass-card rounded-2xl p-3.5 flex items-center justify-between border ${isCreator ? 'border-amber-400/50 bg-amber-500/5' : 'border-white/10'}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl ${player.avatarBg || 'bg-cyan-600'} flex items-center justify-center font-bold text-white text-sm shadow-md relative">
+                                ${player.name.substring(0, 2).toUpperCase()}
+                                ${isCreator ? '<span class="absolute -top-2 -right-2 text-base leading-none" title="Założyciel Pokoju">👑</span>' : ''}
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-white flex items-center gap-1.5">
+                                    ${player.name}
+                                    ${isCreator ? '<span class="text-[11px] font-bold text-amber-300 flex items-center gap-0.5">👑 Założyciel</span>' : ''}
+                                    ${isMe ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300">TY</span>' : ''}
+                                </div>
+                                <div class="text-[11px] text-gray-400 font-mono flex items-center gap-2">
+                                    <span>${player.isCamActive ? '📷 Kamera WŁ' : '🚫 Kamera WYŁ'}</span>
+                                    <span>${player.isMicActive !== false ? '🎙️ Mic WŁ' : '🔇 MUTE'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderWebcamsGrid() {
+            const container = document.getElementById('webcamsGrid');
+            if (!container) return;
+            const currentWord = appGameState.wordsPool[appGameState.activeWordIndex] || 'BRAK HASŁA';
+
+            container.innerHTML = appGameState.players.map((player, idx) => {
+                const isGuesser = idx === appGameState.currentGuesserIndex;
+                const isMe = player.id === appGameState.userId;
+                const isCreator = player.id === appGameState.creatorId;
+                const isCamOn = isMe ? appGameState.isCamEnabled : player.isCamActive;
+                const isMicOn = isMe ? appGameState.isMicEnabled : (player.isMicActive !== false);
+
+                return `
+                    <div id="playerCard_${player.id}" class="relative glass-panel rounded-3xl p-3 border-2 transition-all duration-300 ${isGuesser ? 'border-cyan-400 shadow-neon-cyan ring-4 ring-cyan-500/40 scale-[1.02]' : 'border-white/10 opacity-80'} flex flex-col justify-between h-72 sm:h-80 overflow-hidden group">
+                        
+                        <div class="z-20 w-full flex justify-center pt-2">
+                            <div class="forehead-badge px-5 py-2 rounded-2xl flex flex-col items-center justify-center max-w-[90%] text-center backdrop-blur-md">
+                                <span class="text-[10px] uppercase font-bold tracking-widest ${isGuesser ? 'text-cyan-300' : 'text-purple-300'}">
+                                    ${isGuesser ? 'HASŁO NA CZÓŁKU' : 'PODPOWIADA'}
+                                </span>
+                                <span class="font-display font-black text-lg sm:text-xl text-white tracking-wide truncate max-w-full ${isGuesser && isMe && appGameState.showSelfBlurred ? 'blur-md select-none' : ''}">
+                                    ${currentWord}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="absolute inset-0 z-0 bg-slate-950 flex items-center justify-center overflow-hidden">
+                            ${isMe && appGameState.localStream && appGameState.isCamEnabled ? `
+                                <video id="localVideoFeed" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
+                            ` : `
+                                <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950 p-4 text-center">
+                                    <div class="w-20 h-20 rounded-full ${player.avatarBg || 'bg-purple-600'} flex items-center justify-center font-bold text-2xl text-white shadow-lg mb-3 relative">
+                                        ${player.name.substring(0, 2).toUpperCase()}
+                                        ${isCreator ? '<span class="absolute -top-3 -right-2 text-2xl" title="Założyciel Pokoju">👑</span>' : ''}
+                                    </div>
+                                    <div class="text-xs text-gray-400 font-mono">${isCamOn ? 'Gracz Online' : 'Kamera wyłączona'}</div>
+                                </div>
+                            `}
+                            <div class="absolute inset-0 scanline opacity-30 pointer-events-none"></div>
+                        </div>
+
+                        <div class="z-10 flex items-center justify-between bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full ${isGuesser ? 'bg-cyan-400 animate-ping' : 'bg-emerald-400'}"></span>
+                                <span class="font-bold text-sm text-white truncate max-w-[100px] flex items-center gap-1">
+                                    ${player.name} ${isCreator ? '👑' : ''}
+                                </span>
+                                ${!isMicOn ? '<i data-lucide="mic-off" class="w-3.5 h-3.5 text-rose-400" title="Mikrofon wyciszony"></i>' : ''}
+                            </div>
+                            <span class="text-xs font-semibold px-2.5 py-1 rounded-lg ${isGuesser ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-white/10 text-gray-300'}">
+                                PKT: ${player.score || 0}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (appGameState.localStream && appGameState.isCamEnabled) {
+                const vid = document.getElementById('localVideoFeed');
+                if (vid) vid.srcObject = appGameState.localStream;
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        async function ensureLocalStream() {
+            if (!appGameState.localStream) {
+                try {
+                    appGameState.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                } catch (err) {
+                    try {
+                        appGameState.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    } catch (e) {
+                        console.warn('Media access error:', e);
+                    }
+                }
+            }
+        }
+
+        async function toggleWebcam() {
+            await ensureLocalStream();
+            appGameState.isCamEnabled = !appGameState.isCamEnabled;
+            if (appGameState.localStream) {
+                appGameState.localStream.getVideoTracks().forEach(track => track.enabled = appGameState.isCamEnabled);
+            }
+            updateMediaButtonsUI();
+            updateMyPlayerStatusInState();
+        }
+
+        async function toggleMicrophone() {
+            await ensureLocalStream();
+            appGameState.isMicEnabled = !appGameState.isMicEnabled;
+            if (appGameState.localStream) {
+                appGameState.localStream.getAudioTracks().forEach(track => track.enabled = appGameState.isMicEnabled);
+            }
+            updateMediaButtonsUI();
+            updateMyPlayerStatusInState();
+        }
+
+        function updateMyPlayerStatusInState() {
+            const myPlayer = appGameState.players.find(p => p.id === appGameState.userId);
+            if (myPlayer) {
+                myPlayer.isCamActive = appGameState.isCamEnabled;
+                myPlayer.isMicActive = appGameState.isMicEnabled;
+                pushStateToCloud();
+                syncRoomState();
+            }
+        }
+
+        function updateMediaButtonsUI() {
+            const camText = document.getElementById('camBtnText');
+            if (camText) camText.innerText = appGameState.isCamEnabled ? 'Kamera WŁ' : 'Kamera WYŁ';
+            
+            const micText = document.getElementById('micBtnText');
+            if (micText) micText.innerText = appGameState.isMicEnabled ? 'Mikrofon WŁ' : 'Mikrofon WYŁ';
+
+            const inGameMicBtn = document.getElementById('inGameMicBtn');
+            if (inGameMicBtn) {
+                inGameMicBtn.innerHTML = appGameState.isMicEnabled 
+                    ? `<i data-lucide="mic" class="w-5 h-5 text-emerald-400"></i>` 
+                    : `<i data-lucide="mic-off" class="w-5 h-5 text-rose-400"></i>`;
+            }
+
+            const inGameCamBtn = document.getElementById('inGameCamBtn');
+            if (inGameCamBtn) {
+                inGameCamBtn.innerHTML = appGameState.isCamEnabled 
+                    ? `<i data-lucide="video" class="w-5 h-5 text-cyan-400"></i>` 
+                    : `<i data-lucide="video-off" class="w-5 h-5 text-rose-400"></i>`;
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function shuffleArray(arr) {
+            const a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function startGame() {
+            if (!appGameState.isHost) return;
+            if (appGameState.customCategory.words.length === 0) {
+                alert('Dodaj przynajmniej jedno słowo przed rozpoczęciem!');
+                return;
+            }
+            appGameState.wordsPool = shuffleArray(appGameState.customCategory.words);
+            appGameState.activeWordIndex = 0;
+            appGameState.isGameRunning = true;
+
+            document.getElementById('lobbyScreen')?.classList.add('hidden');
+            document.getElementById('gameplayScreen')?.classList.remove('hidden');
+            document.getElementById('gameplayScreen')?.classList.add('flex');
+            document.getElementById('topGameStats')?.classList.remove('hidden');
+            document.getElementById('topGameStats')?.classList.add('flex');
+            
+            pushStateToCloud();
+            syncRoomState();
+        }
+
+        function markCorrect() {
+            if (!appGameState.isGameRunning || !appGameState.isHost || appGameState.isAnimatingVictory) return;
+            appGameState.isAnimatingVictory = true;
+
+            const currentGuesser = appGameState.players[appGameState.currentGuesserIndex];
+            if (currentGuesser) currentGuesser.score = (currentGuesser.score || 0) + 1;
+
+            audio.playCorrect();
+            if (typeof confetti === 'function') confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+            const backdrop = document.getElementById('victoryBackdrop');
+            const winnerText = document.getElementById('winnerAnnounceText');
+            if (winnerText) winnerText.innerText = `BRAWO ${currentGuesser?.name?.toUpperCase() || ''}!`;
+            if (backdrop) backdrop.classList.add('active');
+
+            setTimeout(() => {
+                if (backdrop) backdrop.classList.remove('active');
+                appGameState.activeWordIndex++;
+                if (appGameState.activeWordIndex >= appGameState.wordsPool.length) {
+                    appGameState.wordsPool = shuffleArray(appGameState.customCategory.words);
+                    appGameState.activeWordIndex = 0;
+                }
+                appGameState.isAnimatingVictory = false;
+                pushStateToCloud();
+                syncRoomState();
+            }, 2000);
+        }
+
+        function markPass() {
+            if (!appGameState.isGameRunning || !appGameState.isHost || appGameState.isAnimatingVictory) return;
+            audio.playPass();
+            appGameState.currentGuesserIndex = (appGameState.currentGuesserIndex + 1) % appGameState.players.length;
+            pushStateToCloud();
+            syncRoomState();
+        }
+
+        function updateHostControlsUI() {
+            const passBtn = document.getElementById('passBtn');
+            const correctBtn = document.getElementById('correctBtn');
+            const startGameBtn = document.getElementById('startGameBtn');
+            const nonHostWarning = document.getElementById('nonHostWarning');
+            const wordInputContainer = document.getElementById('wordInputContainer');
+            const clearWordsBtn = document.getElementById('clearWordsBtn');
+
+            if (appGameState.isHost) {
+                if (passBtn) passBtn.disabled = false;
+                if (correctBtn) correctBtn.disabled = false;
+                if (startGameBtn) startGameBtn.disabled = false;
+                if (nonHostWarning) nonHostWarning.classList.add('hidden');
+                if (wordInputContainer) wordInputContainer.classList.remove('hidden');
+                if (clearWordsBtn) clearWordsBtn.classList.remove('hidden');
+            } else {
+                if (passBtn) passBtn.disabled = true;
+                if (correctBtn) correctBtn.disabled = true;
+                if (startGameBtn) startGameBtn.disabled = true;
+                if (nonHostWarning) nonHostWarning.classList.remove('hidden');
+                if (wordInputContainer) wordInputContainer.classList.add('hidden');
+                if (clearWordsBtn) clearWordsBtn.classList.add('hidden');
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('createPublicRoomBtn')?.addEventListener('click', () => {
+                const newCode = 'CZOLKO-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+                window.location.search = '?room=' + newCode;
+            });
+
+            document.getElementById('refreshRoomsBtn')?.addEventListener('click', () => {
+                subscribeToPublicRooms();
+            });
+
+            document.getElementById('addWordBtn')?.addEventListener('click', () => {
+                if (!appGameState.isHost) return;
+                const input = document.getElementById('newWordInput');
+                const val = input.value.trim();
+                if (val) {
+                    appGameState.customCategory.words.push(val);
+                    saveWordsToStorage(appGameState.customCategory.words);
+                    input.value = '';
+                    renderCustomWords();
+                    pushStateToCloud();
+                }
+            });
+
+            document.getElementById('clearWordsBtn')?.addEventListener('click', () => {
+                if (!appGameState.isHost) return;
+                appGameState.customCategory.words = [];
+                saveWordsToStorage([]);
+                renderCustomWords();
+                pushStateToCloud();
+            });
+
+            document.getElementById('updateNameBtn')?.addEventListener('click', () => {
+                const newName = document.getElementById('playerNameInput').value.trim();
+                if (newName) {
+                    appGameState.myName = newName;
+                    localStorage.setItem(STORAGE_MY_NAME_KEY, newName);
+                    const myPlayer = appGameState.players.find(p => p.id === appGameState.userId);
+                    if (myPlayer) myPlayer.name = newName;
+                    pushStateToCloud();
+                    syncRoomState();
+                }
+            });
+
+            document.getElementById('joinRoomBtn')?.addEventListener('click', () => {
+                const code = document.getElementById('joinRoomInput').value.trim().toUpperCase();
+                if (code) {
+                    window.location.search = '?room=' + code;
+                }
+            });
+
+            document.getElementById('copyCodeBtn')?.addEventListener('click', () => {
+                const temp = document.createElement('input');
+                temp.value = appGameState.roomId;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+                alert('Skopiowano kod pokoju!');
+            });
+
+            document.getElementById('copyLinkBtn')?.addEventListener('click', () => {
+                const link = window.location.origin + window.location.pathname + '?room=' + appGameState.roomId;
+                const temp = document.createElement('input');
+                temp.value = link;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+                alert('Skopiowano link zaproszenia do schowka!');
+            });
+
+            document.getElementById('toggleCamBtn')?.addEventListener('click', toggleWebcam);
+            document.getElementById('toggleMicBtn')?.addEventListener('click', toggleMicrophone);
+            document.getElementById('inGameCamBtn')?.addEventListener('click', toggleWebcam);
+            document.getElementById('inGameMicBtn')?.addEventListener('click', toggleMicrophone);
+            document.getElementById('quickCamBtn')?.addEventListener('click', toggleWebcam);
+            document.getElementById('quickMicBtn')?.addEventListener('click', toggleMicrophone);
+            
+            document.getElementById('startGameBtn')?.addEventListener('click', startGame);
+            document.getElementById('correctBtn')?.addEventListener('click', markCorrect);
+            document.getElementById('passBtn')?.addEventListener('click', markPass);
+
+            document.addEventListener('keydown', (e) => {
+                if (!appGameState.isGameRunning || !appGameState.isHost) return;
+                if (e.target.tagName === 'INPUT') return;
+                if (e.key === 'ArrowRight' || e.key === 'Enter') markCorrect();
+                if (e.key === 'ArrowLeft' || e.key === 'Space') markPass();
+            });
+
+            const settingsModal = document.getElementById('settingsModal');
+            document.getElementById('openSettingsBtn')?.addEventListener('click', () => settingsModal?.classList.remove('hidden'));
+            document.getElementById('closeSettingsBtn')?.addEventListener('click', () => settingsModal?.classList.add('hidden'));
+            document.getElementById('saveSettingsBtn')?.addEventListener('click', () => {
+                const check = document.getElementById('showSelfWordBlurred');
+                if (check) appGameState.showSelfBlurred = check.checked;
+                settingsModal?.classList.add('hidden');
+                if (appGameState.isGameRunning) renderWebcamsGrid();
+            });
+        }
+    </script>
+</body>
+</html>
